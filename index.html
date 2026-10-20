@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Fun Weekend: Recount Adventure - Interactive Game</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Phaser 3 Game Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <!-- Canvas Confetti for Celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --sky-blue: #4CC9F0;
+            --turquoise: #06D6A0;
+            --yellow: #FFD166;
+            --coral: #FF70A6;
+            --purple: #A5A6F6;
+            --dark-blue: #1D3557;
+            --card-bg: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #111827;
+            color: var(--dark-blue);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 900px;
+            max-height: 100vh;
+            background: #EBF2FA;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* HEADER HUD */
+        header {
+            background: linear-gradient(135deg, var(--sky-blue), var(--purple));
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .hud-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .hud-stats {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .stat-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        /* MASCOT WIDGET */
+        #buddy-widget {
+            background: #FFF;
+            border-bottom: 3px solid var(--sky-blue);
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9;
+        }
+
+        #buddy-avatar {
+            width: 45px;
+            height: 45px;
+            background: var(--yellow);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        #buddy-bubble {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--dark-blue);
+            line-height: 1.25;
+        }
+
+        /* MAIN GAME AREA */
+        #game-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            min-height: 100%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* BUTTONS */
+        .btn-game {
+            background: var(--sky-blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #3A92A6;
+            transition: all 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .btn-game:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #3A92A6;
+        }
+
+        .btn-turquoise { background: var(--turquoise); box-shadow: 0 4px 0 #04A37A; }
+        .btn-turquoise:active { box-shadow: 0 0 0 #04A37A; }
+
+        .btn-coral { background: var(--coral); box-shadow: 0 4px 0 #D6457B; }
+        .btn-coral:active { box-shadow: 0 0 0 #D6457B; }
+
+        .btn-yellow { background: var(--yellow); color: var(--dark-blue); box-shadow: 0 4px 0 #D1A235; }
+        .btn-yellow:active { box-shadow: 0 0 0 #D1A235; }
+
+        /* MAP GRID GAME */
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .level-card {
+            background: white;
+            border-radius: 18px;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 3px solid #E2E8F0;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .level-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--sky-blue);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+        }
+
+        .level-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: #EDF2F7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--dark-blue);
+        }
+
+        /* GAMEPLAY COMPONENTS */
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 15px;
+            width: 100%;
+            border: 2px solid #E2E8F0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            margin-bottom: 12px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        .item-card {
+            background: #F8FAFC;
+            border: 2px solid #CBD5E1;
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 800;
+            transition: all 0.15s;
+        }
+
+        .item-card:hover {
+            border-color: var(--sky-blue);
+            background: #F0F9FF;
+        }
+
+        .bucket-zone {
+            border: 3px dashed var(--purple);
+            border-radius: 15px;
+            padding: 12px;
+            min-height: 120px;
+            text-align: center;
+            background: #F5F3FF;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .puzzle-box {
+            min-height: 50px;
+            border: 2px dashed var(--sky-blue);
+            border-radius: 12px;
+            background: #F0F9FF;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .chip {
+            background: white;
+            border: 2px solid var(--sky-blue);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #DDD;
+        }
+
+        .story-display {
+            background: #FFFBEB;
+            border: 2px solid var(--yellow);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        /* TOAST FEEDBACK */
+        #toast {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 450px;
+            background: white;
+            border-radius: 18px;
+            padding: 12px 18px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            border: 3px solid var(--turquoise);
+        }
+
+        #toast.show { display: flex; animation: popUp 0.25s ease; }
+
+        @keyframes popUp {
+            from { transform: translate(-50%, 40px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+
+    <!-- TOP HUD -->
+    <header>
+        <div class="hud-logo" onclick="showScreen('home')">
+            <i class="fa-solid fa-gamepad fa-lg"></i>
+            <span>MY FUN WEEKEND</span>
+        </div>
+        <div class="hud-stats">
+            <div class="stat-badge"><i class="fa-solid fa-star" style="color: var(--yellow);"></i> <span id="hud-score">0</span></div>
+            <button class="stat-badge" style="cursor:pointer; background:rgba(255,255,255,0.3);" onclick="toggleSound()"><i class="fa-solid fa-volume-high" id="sound-icon"></i></button>
+        </div>
+    </header>
+
+    <!-- BUDDY MASCOT ADVISOR -->
+    <div id="buddy-widget">
+        <div id="buddy-avatar">😊</div>
+        <div id="buddy-bubble">Hi Explorer! 👋 Welcome to My Fun Weekend game! Let's start playing!</div>
+    </div>
+
+    <!-- GAME CANVAS CONTAINER -->
+    <div id="game-container">
+
+        <!-- 1. HOME SCREEN -->
+        <div id="screen-home" class="screen active">
+            <div style="text-align: center; margin-top: 15px; margin-bottom: 20px;">
+                <h1 style="font-size: 2rem; font-weight: 900; color: var(--dark-blue);">RECOUNT ADVENTURE</h1>
+                <p style="font-weight: 700; color: #64748B;">“Play, Learn, and Tell Your Story!”</p>
+            </div>
+
+            <div style="width: 100%; max-width: 350px;">
+                <button class="btn-game btn-turquoise" onclick="showScreen('map')"><i class="fa-solid fa-play"></i> START GAME</button>
+                <button class="btn-game" onclick="showScreen('material')"><i class="fa-solid fa-book"></i> LEARN MATERIAL</button>
+                <button class="btn-game btn-yellow" onclick="showScreen('report')"><i class="fa-solid fa-trophy"></i> MY PROGRESS</button>
+                <button class="btn-game btn-coral" onclick="showScreen('help')"><i class="fa-solid fa-circle-info"></i> HOW TO PLAY</button>
+            </div>
+        </div>
+
+        <!-- 2. MAP SCREEN -->
+        <div id="screen-map" class="screen">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <h3 style="font-weight: 900;">WORLD MAP</h3>
+                <button class="btn-game btn-yellow" style="width: auto; padding: 6px 12px; font-size: 0.8rem;" onclick="showScreen('home')"><i class="fa-solid fa-house"></i> Home</button>
+            </div>
+
+            <div class="map-grid">
+                <div class="level-card" onclick="startLevel(1)">
+                    <div class="level-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <div>
+                        <h4 style="font-weight: 800;">1. Word Hunter</h4>
+                        <p style="font-size: 0.75rem; color: #64748B;">Berburu Vocabulary</p>
+                        <small id="score-l1" style="color: var(--turquoise); font-weight: 800;">Score: 0/60</small>
+                    </div>
+                </div>
+
+                <div class="level-card" onclick="startLevel(2)">
+                    <div class="level-icon"><i class="fa-solid fa-user-secret"></i></div>
+                    <div>
+                        <h4 style="font-weight: 800;">2. Verb Detective</h4>
+                        <p style="font-size: 0.75rem; color: #64748B;">Detektif V1 vs V2</p>
+                        <small id="score-l2" style="color: var(--turquoise); font-weight: 800;">Score: 0/60</small>
+                    </div>
+                </div>
+
+                <div class="level-card" onclick="startLevel(3)">
+                    <div class="level-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <div>
+                        <h4 style="font-weight: 800;">3. Time Traveler</h4>
+                        <p style="font-size: 0.75rem; color: #64748B;">Past vs Future Time</p>
+                        <small id="score-l3" style="color: var(--turquoise); font-weight: 800;">Score: 0/25</small>
+                    </div>
+                </div>
+
+                <div class="level-card" onclick="startLevel(4)">
+                    <div class="level-icon"><i class="fa-solid fa-puzzle-piece"></i></div>
+                    <div>
+                        <h4 style="font-weight: 800;">4. Sentence Factory</h4>
+                        <p style="font-size: 0.75rem; color: #64748B;">Rakit Kalimat Lampau</p>
+                        <small id="score-l4" style="color: var(--turquoise); font-weight: 800;">Score: 0/45</small>
+                    </div>
+                </div>
+
+                <div class="level-card" onclick="startLevel(5)">
+                    <div class="level-icon"><i class="fa-solid fa-tree"></i></div>
+                    <div>
+                        <h4 style="font-weight: 800;">5. Story Park</h4>
+                        <p style="font-size: 0.75rem; color: #64748B;">Struktur Teks Recount</p>
+                        <small id="score-l5" style="color: var(--turquoise); font-weight: 800;">Score: 0/50</small>
+                    </div>
+                </div>
+
+                <div class="level-card" onclick="startLevel(6)">
+                    <div class="level-icon"><i class="fa-solid fa-microphone"></i></div>
+                    <div>
+                        <h4 style="font-weight: 800;">6. Story Stage</h4>
+                        <p style="font-size: 0.75rem; color: #64748B;">Tulis Cerita Sendiri</p>
+                        <small id="score-l6" style="color: var(--turquoise); font-weight: 800;">Score: 0/20</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. LEVEL 1: WORD HUNTER -->
+        <div id="screen-l1" class="screen">
+            <div class="game-card text-center">
+                <h3 style="font-weight: 800;">Level 1: Word Hunter</h3>
+                <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 12px;">Cocokkan ikon aktivitas dengan kosakata yang tepat!</p>
+                <div id="l1-icon" style="font-size: 3.5rem; color: var(--sky-blue); margin: 15px 0;"></div>
+                <div id="l1-options" class="grid-2"></div>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('map')"><i class="fa-solid fa-arrow-left"></i> Map</button>
+        </div>
+
+        <!-- 4. LEVEL 2: VERB DETECTIVE -->
+        <div id="screen-l2" class="screen">
+            <div class="game-card text-center">
+                <h3 style="font-weight: 800;">Level 2: Verb Detective</h3>
+                <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 12px;">Pilih apakah kata kerja ini Present (V1) atau Past (V2)!</p>
+                
+                <div id="l2-word" style="font-size: 1.5rem; font-weight: 900; color: var(--coral); margin-bottom: 15px;"></div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="bucket-zone" onclick="answerL2('V1')">
+                        <h4 style="font-weight: 800; color: var(--dark-blue);">PRESENT (V1)</h4>
+                        <i class="fa-solid fa-sun fa-2x" style="color: var(--yellow); margin-top: 5px;"></i>
+                    </div>
+                    <div class="bucket-zone" onclick="answerL2('V2')">
+                        <h4 style="font-weight: 800; color: var(--dark-blue);">PAST (V2)</h4>
+                        <i class="fa-solid fa-moon fa-2x" style="color: var(--purple); margin-top: 5px;"></i>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('map')"><i class="fa-solid fa-arrow-left"></i> Map</button>
+        </div>
+
+        <!-- 5. LEVEL 3: TIME TRAVELER -->
+        <div id="screen-l3" class="screen">
+            <div class="game-card text-center">
+                <h3 style="font-weight: 800;">Level 3: Time Traveler</h3>
+                <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 12px;">Apakah penanda waktu ini PAST (Lampau) atau FUTURE (Masa Depan)?</p>
+                
+                <div id="l3-word" style="font-size: 1.5rem; font-weight: 900; color: var(--sky-blue); margin: 20px 0;"></div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-game btn-coral" onclick="answerL3('PAST')"><i class="fa-solid fa-backward"></i> PAST</button>
+                    <button class="btn-game btn-turquoise" onclick="answerL3('FUTURE')">FUTURE <i class="fa-solid fa-forward"></i></button>
+                </div>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('map')"><i class="fa-solid fa-arrow-left"></i> Map</button>
+        </div>
+
+        <!-- 6. LEVEL 4: SENTENCE FACTORY -->
+        <div id="screen-l4" class="screen">
+            <div class="game-card">
+                <h3 style="font-weight: 800; text-align: center;">Level 4: Sentence Factory</h3>
+                <p style="font-size: 0.85rem; color: #64748B; text-align: center; margin-bottom: 10px;">Susun balok kata menjadi kalimat Simple Past Tense!</p>
+
+                <div class="puzzle-box" id="l4-dropzone"></div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 15px;" id="l4-options"></div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-game btn-turquoise" onclick="checkL4()"><i class="fa-solid fa-check"></i> CHECK</button>
+                    <button class="btn-game btn-coral" onclick="resetL4()"><i class="fa-solid fa-rotate-left"></i> RESET</button>
+                </div>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('map')"><i class="fa-solid fa-arrow-left"></i> Map</button>
+        </div>
+
+        <!-- 7. LEVEL 5: STORY PARK -->
+        <div id="screen-l5" class="screen">
+            <div class="story-display">
+                <h4 style="text-align: center; margin-bottom: 4px; font-weight: 800;">A QUIET SATURDAY</h4>
+                <p><b>[Orientation]</b> Last Saturday, I stayed at home with my family.</p>
+                <p><b>[Events]</b> In the morning, I cleaned my room. Then, I read a comic book. In the afternoon, my mother and I cooked fried rice.</p>
+                <p><b>[Reorientation]</b> I felt tired but happy.</p>
+            </div>
+
+            <div class="game-card" id="l5-question-box"></div>
+            <button class="btn-game btn-yellow" onclick="showScreen('map')"><i class="fa-solid fa-arrow-left"></i> Map</button>
+        </div>
+
+        <!-- 8. LEVEL 6: STORY STAGE -->
+        <div id="screen-l6" class="screen">
+            <div class="game-card">
+                <h3 style="font-weight: 800; text-align: center; margin-bottom: 10px;">Level 6: Story Stage</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem; font-weight: 700;">
+                    <div>
+                        <label>1. Orientation (Waktu & Tempat):</label>
+                        <select id="s-orient" style="width:100%; padding: 8px; border-radius: 8px; border:1px solid #CBD5E1;">
+                            <option value="Last Sunday, I stayed at home.">Last Sunday, I stayed at home.</option>
+                            <option value="Last Saturday, I visited my grandmother.">Last Saturday, I visited my grandmother.</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>2. Event 1 (Kegiatan Pertama):</label>
+                        <select id="s-ev1" style="width:100%; padding: 8px; border-radius: 8px; border:1px solid #CBD5E1;">
+                            <option value="In the morning, I cleaned my room.">In the morning, I cleaned my room.</option>
+                            <option value="In the morning, I played badminton.">In the morning, I played badminton.</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>3. Event 2 (Kegiatan Kedua):</label>
+                        <select id="s-ev2" style="width:100%; padding: 8px; border-radius: 8px; border:1px solid #CBD5E1;">
+                            <option value="Then, I cooked fried rice with my mother.">Then, I cooked fried rice with my mother.</option>
+                            <option value="Then, I watched TV with my family.">Then, I watched TV with my family.</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>4. Reorientation (Perasaan):</label>
+                        <select id="s-reorient" style="width:100%; padding: 8px; border-radius: 8px; border:1px solid #CBD5E1;">
+                            <option value="I felt happy and relaxed.">I felt happy and relaxed.</option>
+                            <option value="I felt tired but excited.">I felt tired but excited.</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn-game btn-turquoise" style="margin-top: 12px;" onclick="submitL6()"><i class="fa-solid fa-wand-magic-sparkles"></i> PUBLISH STORY</button>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('map')"><i class="fa-solid fa-arrow-left"></i> Map</button>
+        </div>
+
+        <!-- 9. REPORT SCREEN -->
+        <div id="screen-report" class="screen">
+            <div class="game-card text-center">
+                <h2 style="font-weight: 900;">GAME REPORT</h2>
+                <div id="final-score" style="font-size: 3.5rem; font-weight: 900; color: var(--turquoise); margin: 10px 0;">0 / 100</div>
+                <p id="total-raw" style="color: #64748B; font-weight: 700;">Raw Points: 0 / 260</p>
+            </div>
+
+            <div class="game-card">
+                <h4 style="font-weight: 800; margin-bottom: 8px;">Learning Recommendations:</h4>
+                <ul id="recs-list" style="margin-left: 20px; font-size: 0.88rem; line-height: 1.5;"></ul>
+            </div>
+
+            <button class="btn-game btn-turquoise" onclick="showScreen('map')"><i class="fa-solid fa-rotate-right"></i> PLAY AGAIN</button>
+        </div>
+
+        <!-- 10. MATERIAL SCREEN -->
+        <div id="screen-material" class="screen">
+            <div class="game-card">
+                <h3 style="font-weight: 800; margin-bottom: 8px;">Recount Text Material</h3>
+                <p style="font-size: 0.88rem; line-height: 1.5;">
+                    <b>Recount Text</b> menceritakan pengalaman masa lalu.<br><br>
+                    <b>Struktur:</b><br>
+                    1. <b>Orientation:</b> Siapa, kapan, di mana.<br>
+                    2. <b>Events:</b> Urutan kejadian.<br>
+                    3. <b>Reorientation:</b> Penutup/Perasaan.<br><br>
+                    <b>Grammar:</b> Menggunakan <i>Simple Past Tense (Verb 2)</i> & <i>Past Time Signals</i> (yesterday, last week).
+                </p>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('home')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        </div>
+
+        <!-- 11. HELP SCREEN -->
+        <div id="screen-help" class="screen">
+            <div class="game-card">
+                <h3 style="font-weight: 800; margin-bottom: 8px;">How to Play & Teacher Guide</h3>
+                <p style="font-size: 0.88rem; line-height: 1.5;">
+                    • Selesaikan 6 level permainan di World Map.<br>
+                    • Ikuti petunjuk Buddy di setiap tantangan.<br>
+                    • Guru dapat menggunakannya untuk pembelajaran berpasangan (Think-Pair-Share) via proyektor atau HP murid.
+                </p>
+            </div>
+            <button class="btn-game btn-yellow" onclick="showScreen('home')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        </div>
+
+    </div>
+
+    <!-- FEEDBACK TOAST -->
+    <div id="toast">
+        <div id="toast-icon" style="font-size: 1.8rem;">🎉</div>
+        <div>
+            <h5 id="toast-title" style="font-weight: 800;">Awesome!</h5>
+            <p id="toast-msg" style="font-size: 0.8rem; color: #475569;">Correct answer!</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* GAME ENGINE & LOGIC HANDLER */
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    let scores = { l1: 0, l2: 0, l3: 0, l4: 0, l5: 0, l6: 0 };
+
+    // Synth Audio Generator for Web Audio SFX
+    function playSound(type) {
+        if (!soundEnabled) return;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'wrong') {
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+            osc.frequency.setValueAtTime(196, audioCtx.currentTime + 0.1); // G3
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('sound-icon').className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+    }
+
+    function setBuddy(avatar, text) {
+        document.getElementById('buddy-avatar').innerText = avatar;
+        document.getElementById('buddy-bubble').innerText = text;
+    }
+
+    function showToast(icon, title, msg) {
+        const t = document.getElementById('toast');
+        document.getElementById('toast-icon').innerText = icon;
+        document.getElementById('toast-title').innerText = title;
+        document.getElementById('toast-msg').innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${id}`).classList.add('active');
+        
+        if(id === 'home') setBuddy('😊', "Welcome Explorer! Ready to play?");
+        if(id === 'map') setBuddy('🗺️', "Select a stage on the World Map!");
+        if(id === 'report') renderReport();
+        updateHUD();
+    }
+
+    function updateHUD() {
+        const totalRaw = Object.values(scores).reduce((a, b) => a + b, 0);
+        document.getElementById('hud-score').innerText = totalRaw;
+        
+        document.getElementById('score-l1').innerText = `Score: ${scores.l1}/60`;
+        document.getElementById('score-l2').innerText = `Score: ${scores.l2}/60`;
+        document.getElementById('score-l3').innerText = `Score: ${scores.l3}/25`;
+        document.getElementById('score-l4').innerText = `Score: ${scores.l4}/45`;
+        document.getElementById('score-l5').innerText = `Score: ${scores.l5}/50`;
+        document.getElementById('score-l6').innerText = `Score: ${scores.l6}/20`;
+    }
+
+    /* LEVEL 1 */
+    const l1Data = [
+        { word: 'READ', icon: 'fa-book-open', mean: 'Membaca' },
+        { word: 'COOK', icon: 'fa-utensils', mean: 'Memasak' },
+        { word: 'WATCH', icon: 'fa-tv', mean: 'Menonton' },
+        { word: 'CLEAN', icon: 'fa-broom', mean: 'Membersihkan' },
+        { word: 'VISIT', icon: 'fa-house-user', mean: 'Mengunjungi' },
+        { word: 'WALK', icon: 'fa-person-walking', mean: 'Berjalan' }
+    ];
+    let l1Idx = 0;
+
+    function renderL1() {
+        if(l1Idx >= l1Data.length) {
+            confetti();
+            setBuddy('🎉', "Level 1 Cleared!");
+            setTimeout(() => showScreen('map'), 1500);
+            return;
+        }
+        const curr = l1Data[l1Idx];
+        document.getElementById('l1-icon').innerHTML = `<i class="fa-solid ${curr.icon}"></i>`;
+        
+        let opts = [...l1Data].sort(() => 0.5 - Math.random());
+        document.getElementById('l1-options').innerHTML = opts.map(o => `
+            <div class="item-card" onclick="checkL1('${o.word}')">${o.word}</div>
+        `).join('');
+        setBuddy('🧐', `Match the activity picture! (${l1Idx+1}/6)`);
+    }
+
+    function checkL1(ans) {
+        if(ans === l1Data[l1Idx].word) {
+            playSound('correct');
+            scores.l1 += 10;
+            showToast('🎉', 'Correct!', `${ans} = ${l1Data[l1Idx].mean}`);
+            l1Idx++;
+            renderL1();
+        } else {
+            playSound('wrong');
+            showToast('💡', 'Good Try!', 'Look at the icon again!');
+        }
+        updateHUD();
+    }
+
+    /* LEVEL 2 */
+    const l2Data = [
+        { word: 'play', type: 'V1' }, { word: 'played', type: 'V2' },
+        { word: 'cook', type: 'V1' }, { word: 'cooked', type: 'V2' },
+        { word: 'go', type: 'V1' },   { word: 'went', type: 'V2' },
+        { word: 'read', type: 'V1' }, { word: 'read', type: 'V2' },
+        { word: 'clean', type: 'V1' },{ word: 'cleaned', type: 'V2' },
+        { word: 'visit', type: 'V1' },{ word: 'visited', type: 'V2' }
+    ];
+    let l2Idx = 0;
+
+    function renderL2() {
+        if(l2Idx >= l2Data.length) {
+            confetti();
+            setBuddy('🎉', "Level 2 Cleared!");
+            setTimeout(() => showScreen('map'), 1500);
+            return;
+        }
+        document.getElementById('l2-word').innerText = l2Data[l2Idx].word;
+        setBuddy('🕵️', `Is "${l2Data[l2Idx].word}" Present (V1) or Past (V2)?`);
+    }
+
+    function answerL2(type) {
+        if(type === l2Data[l2Idx].type) {
+            playSound('correct');
+            scores.l2 += 5;
+            showToast('✅', 'Correct!', `"${l2Data[l2Idx].word}" is ${type}`);
+            l2Idx++;
+            renderL2();
+        } else {
+            playSound('wrong');
+            showToast('💡', 'Check again!', 'Past tense usually ends in -ed or changes form!');
+        }
+        updateHUD();
+    }
+
+    /* LEVEL 3 */
+    const l3Data = [
+        { text: 'Yesterday', type: 'PAST' },
+        { text: 'Tomorrow', type: 'FUTURE' },
+        { text: 'Last Sunday', type: 'PAST' },
+        { text: 'Two days ago', type: 'PAST' },
+        { text: 'Next week', type: 'FUTURE' }
+    ];
+    let l3Idx = 0;
+
+    function renderL3() {
+        if(l3Idx >= l3Data.length) {
+            confetti();
+            setBuddy('🎉', "Level 3 Cleared!");
+            setTimeout(() => showScreen('map'), 1500);
+            return;
+        }
+        document.getElementById('l3-word').innerText = l3Data[l3Idx].text;
+        setBuddy('⏰', `Is "${l3Data[l3Idx].text}" Past or Future?`);
+    }
+
+    function answerL3(type) {
+        if(type === l3Data[l3Idx].type) {
+            playSound('correct');
+            scores.l3 += 5;
+            showToast('🎉', 'Correct!', `${l3Data[l3Idx].text} is ${type}`);
+            l3Idx++;
+            renderL3();
+        } else {
+            playSound('wrong');
+            showToast('💡', 'Oops!', 'Remember: Yesterday & Last mean Past!');
+        }
+        updateHUD();
+    }
+
+    /* LEVEL 4 */
+    const l4Data = [
+        { words: ['I', 'cleaned', 'my room', 'yesterday'], target: 'I cleaned my room yesterday' },
+        { words: ['We', 'visited', 'grandmother', 'last week'], target: 'We visited grandmother last week' },
+        { words: ['I', 'played', 'football', 'last Sunday'], target: 'I played football last Sunday' }
+    ];
+    let l4Idx = 0;
+    let l4Selected = [];
+
+    function renderL4() {
+        if(l4Idx >= l4Data.length) {
+            confetti();
+            setBuddy('🎉', "Level 4 Cleared!");
+            setTimeout(() => showScreen('map'), 1500);
+            return;
+        }
+        l4Selected = [];
+        updateL4UI();
+        setBuddy('🧩', "Build the sentence in correct order!");
+    }
+
+    function updateL4UI() {
+        const curr = l4Data[l4Idx];
+        document.getElementById('l4-dropzone').innerHTML = l4Selected.map(w => `<span class="chip">${w}</span>`).join('');
+        const unselected = curr.words.filter(w => !l4Selected.includes(w)).sort(() => 0.5 - Math.random());
+        document.getElementById('l4-options').innerHTML = unselected.map(w => `<span class="chip" onclick="pickL4('${w}')">${w}</span>`).join('');
+    }
+
+    function pickL4(w) { l4Selected.push(w); updateL4UI(); }
+    function resetL4() { l4Selected = []; updateL4UI(); }
+
+    function checkL4() {
+        if(l4Selected.join(' ') === l4Data[l4Idx].target) {
+            playSound('correct');
+            scores.l4 += 15;
+            showToast('🎉', 'Correct!', 'Grammar is perfect!');
+            l4Idx++;
+            renderL4();
+        } else {
+            playSound('wrong');
+            showToast('💡', 'Try again!', 'Subject + Verb 2 + Object + Time Signal!');
+        }
+        updateHUD();
+    }
+
+    /* LEVEL 5 */
+    const l5Questions = [
+        { q: "When did the writer stay at home?", opts: ["Last Saturday", "Yesterday"], ans: "Last Saturday" },
+        { q: "What did the writer clean?", opts: ["My room", "The kitchen"], ans: "My room" },
+        { q: "Which part tells feelings?", opts: ["Reorientation", "Events"], ans: "Reorientation" },
+        { q: "Which verb is V2 (Past)?", opts: ["cooked", "stay"], ans: "cooked" },
+        { q: "How did the writer feel?", opts: ["Tired but happy", "Angry"], ans: "Tired but happy" }
+    ];
+    let l5Idx = 0;
+
+    function renderL5() {
+        if(l5Idx >= l5Questions.length) {
+            confetti();
+            setBuddy('🎉', "Level 5 Cleared!");
+            setTimeout(() => showScreen('map'), 1500);
+            return;
+        }
+        const q = l5Questions[l5Idx];
+        document.getElementById('l5-question-box').innerHTML = `
+            <h5 style="font-weight:800; margin-bottom:10px;">Q${l5Idx+1}: ${q.q}</h5>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                ${q.opts.map(o => `<button class="btn-game btn-yellow" onclick="answerL5('${o}')">${o}</button>`).join('')}
+            </div>
+        `;
+        setBuddy('📖', `Answer question ${l5Idx+1}!`);
+    }
+
+    function answerL5(ans) {
+        if(ans === l5Questions[l5Idx].ans) {
+            playSound('correct');
+            scores.l5 += 10;
+            showToast('🎉', 'Correct!', 'Great reading comprehension!');
+            l5Idx++;
+            renderL5();
+        } else {
+            playSound('wrong');
+            showToast('💡', 'Good try!', 'Read the story box again!');
+        }
+        updateHUD();
+    }
+
+    /* LEVEL 6 */
+    function submitL6() {
+        scores.l6 = 20;
+        confetti();
+        playSound('correct');
+        showToast('🏆', 'Published!', 'Your story is created!');
+        updateHUD();
+        setTimeout(() => showScreen('report'), 1500);
+    }
+
+    /* START LEVEL CONTROLLER */
+    function startLevel(lvl) {
+        if(lvl === 1) { l1Idx = 0; scores.l1 = 0; renderL1(); }
+        if(lvl === 2) { l2Idx = 0; scores.l2 = 0; renderL2(); }
+        if(lvl === 3) { l3Idx = 0; scores.l3 = 0; renderL3(); }
+        if(lvl === 4) { l4Idx = 0; scores.l4 = 0; renderL4(); }
+        if(lvl === 5) { l5Idx = 0; scores.l5 = 0; renderL5(); }
+        if(lvl === 6) { scores.l6 = 0; }
+        showScreen(`l${lvl}`);
+    }
+
+    /* REPORT CALCULATOR */
+    function renderReport() {
+        const total = Object.values(scores).reduce((a, b) => a + b, 0);
+        const finalScore = Math.round((total / 260) * 100);
+        
+        document.getElementById('total-raw').innerText = `Raw Points: ${total} / 260`;
+        document.getElementById('final-score').innerText = `${finalScore} / 100`;
+
+        let recs = [];
+        if(scores.l1 < 60) recs.push("Practice Level 1: Vocabulary & Activities.");
+        if(scores.l2 < 60) recs.push("Practice Level 2: Verb 1 vs Verb 2.");
+        if(scores.l3 < 25) recs.push("Practice Level 3: Time signals (Past vs Future).");
+        if(scores.l4 < 45) recs.push("Practice Level 4: Simple Past Tense structure.");
+        if(scores.l5 < 50) recs.push("Practice Level 5: Orientation, Events, Reorientation.");
+        if(recs.length === 0) recs.push("🎉 Outstanding! You mastered Recount Text!");
+
+        document.getElementById('recs-list').innerHTML = recs.map(r => `<li>${r}</li>`).join('');
+        setBuddy('🏅', `Final score: ${finalScore}/100. Great effort!`);
+    }
+</script>
+
+</body>
+</html>
